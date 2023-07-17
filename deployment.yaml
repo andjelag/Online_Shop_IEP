@@ -1,0 +1,94 @@
+version: '3'
+
+services:
+  authentificationDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - networkAuthentification
+  authentificationDBMigration:
+    image: authentificationdbmigration
+    environment:
+      - DATABASE_URL=authentificationDB
+    depends_on:
+      authentificationDB:
+        condition: service_healthy
+    networks:
+      - networkAuthentification
+  authentification:
+    image: authentification
+    environment:
+      - DATABASE_URL=authentificationDB
+    depends_on:
+      - authentificationDBMigration
+    ports:
+      - 5010:5002
+    networks:
+      - networkAuthentification
+
+  productManagementDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - productsdata:/var/lib/mysql
+    networks:
+      - networkProducts
+  productmanagementDBMigration:
+    image: productmanagementdbmigration
+    environment:
+      - DATABASE_URL=productManagementDB
+    depends_on:
+      productManagementDB:
+        condition: service_healthy
+    networks:
+      - networkProducts
+  owner:
+    image: owner
+    environment:
+      - DATABASE_URL=productManagementDB
+    depends_on:
+      - productmanagementDBMigration
+    ports:
+      - 5005:5001
+    networks:
+      - networkProducts
+  customer:
+    image: customer
+    environment:
+      - DATABASE_URL=productManagementDB
+    depends_on:
+      - productmanagementDBMigration
+    ports:
+      - 5006:5002
+    networks:
+      - networkProducts
+  courier:
+    image: courier
+    environment:
+      - DATABASE_URL=productManagementDB
+    depends_on:
+      - productmanagementDBMigration
+    ports:
+      - 5007:5003
+    networks:
+      - networkProducts
+
+volumes:
+  dbdata:
+  productsdata:
+
+networks:
+  networkAuthentification:
+  networkProducts:
